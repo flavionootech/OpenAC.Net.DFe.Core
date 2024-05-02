@@ -190,16 +190,17 @@ namespace OpenAC.Net.DFe.Core
         /// <param name="certificado">O certificado.</param>
         /// <param name="comments">Se for <c>true</c> vai inserir a tag #withcomments no transform.</param>
         /// <param name="digest">Algoritmo usando para gerar o hash por padrão SHA1.</param>
+        /// <param name="canonicalizationMethod">Canonicalization Method</param>
         /// <returns>System.String.</returns>
         /// <exception cref="OpenDFeException">Erro ao efetuar assinatura digital.</exception>
         /// <exception cref="OpenDFeException">Erro ao efetuar assinatura digital.</exception>
         public static void AssinarDocumento(XmlDocument doc, string docElement, string infoElement, string signAtribute,
-            X509Certificate2 certificado, bool comments = false, SignDigest digest = SignDigest.SHA1)
+            X509Certificate2 certificado, bool comments = false, SignDigest digest = SignDigest.SHA1, string canonicalizationMethod = SignedXml.XmlDsigExcC14NTransformUrl)
         {
             Guard.Against<ArgumentNullException>(doc == null, "XmlDOcument não pode ser nulo.");
             Guard.Against<ArgumentException>(docElement.IsEmpty(), "docElement não pode ser nulo ou vazio.");
 
-            var xmlDigitalSignature = GerarAssinatura(doc, infoElement, signAtribute, certificado, comments, digest);
+            var xmlDigitalSignature = GerarAssinatura(doc, infoElement, signAtribute, certificado, comments, digest, canonicalizationMethod);
             var xmlElement = doc.GetElementsByTagName(docElement).Cast<XmlElement>().FirstOrDefault();
 
             Guard.Against<OpenDFeException>(xmlElement == null, "Elemento principal não encontrado.");
@@ -216,12 +217,13 @@ namespace OpenAC.Net.DFe.Core
         /// <param name="certificado">The certificado.</param>
         /// <param name="comments">if set to <c>true</c> [comments].</param>
         /// <param name="digest">The digest.</param>
+        /// <param name="canonicalizationMethod"></param>
         /// <param name="options">The options.</param>
         /// <param name="signedXml"></param>
         /// <returns>DFeSignature.</returns>
         public static DFeSignature AssinarDocumento<TDocument>(this DFeSignDocument<TDocument> document,
             X509Certificate2 certificado, bool comments, SignDigest digest,
-            DFeSaveOptions options, out string signedXml) where TDocument : class
+            string canonicalizationMethod, DFeSaveOptions options, out string signedXml) where TDocument : class
         {
             Guard.Against<ArgumentException>(!typeof(TDocument).HasAttribute<DFeSignInfoElement>(), "Atributo [DFeSignInfoElement] não encontrado.");
 
@@ -230,7 +232,7 @@ namespace OpenAC.Net.DFe.Core
             xmlDoc.LoadXml(xml);
 
             var signatureInfo = typeof(TDocument).GetAttribute<DFeSignInfoElement>();
-            var xmlSignature = GerarAssinatura(xmlDoc, signatureInfo.SignElement, signatureInfo.SignAtribute, certificado, comments, digest);
+            var xmlSignature = GerarAssinatura(xmlDoc, signatureInfo.SignElement, signatureInfo.SignAtribute, certificado, comments, digest, canonicalizationMethod);
 
             // Adiciona a assinatura no documento e retorna o xml assinado no parametro signedXml
             var element = xmlDoc.ImportNode(xmlSignature, true);
@@ -288,7 +290,7 @@ namespace OpenAC.Net.DFe.Core
         }
         
         private static XmlElement GerarAssinatura(XmlDocument doc, string infoElement, string signAtribute,
-            X509Certificate2 certificado, bool comments, SignDigest digest)
+            X509Certificate2 certificado, bool comments, SignDigest digest, string canonicalizationMethod = SignedXml.XmlDsigExcC14NTransformUrl)
         {
             Guard.Against<ArgumentException>(!infoElement.IsEmpty() && doc.GetElementsByTagName(infoElement).Count != 1, "Referencia invalida ou não é unica.");
 
@@ -306,7 +308,7 @@ namespace OpenAC.Net.DFe.Core
                 KeyInfo = keyInfo,
                 SignedInfo =
                 {
-                    CanonicalizationMethod = SignedXml.XmlDsigExcC14NTransformUrl,
+                    CanonicalizationMethod = canonicalizationMethod,
                     SignatureMethod = GetSignatureMethod(digest)
                 }
             };

@@ -22,10 +22,11 @@ public abstract class DFeSignDocument<TDocument> : DFeDocument<TDocument> where 
     /// <param name="certificado">The certificado.</param>
     /// <param name="comments">if set to <c>true</c> [comments].</param>
     /// <param name="digest">The digest.</param>
+    /// <param name="canonicalizationMethod">The Canonicalization Method</param>
     /// <param name="options">The options.</param>
-    protected void AssinarDocumento(X509Certificate2 certificado, DFeSaveOptions options, bool comments, SignDigest digest)
+    protected void AssinarDocumento(X509Certificate2 certificado, DFeSaveOptions options, bool comments, SignDigest digest, string canonicalizationMethod)
     {
-        Signature = XmlSigning.AssinarDocumento(this, certificado, comments, digest, options, out var xml);
+        Signature = XmlSigning.AssinarDocumento(this, certificado, comments, digest, canonicalizationMethod, options, out var xml);
         Xml = xml;
     }
 
